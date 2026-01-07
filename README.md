@@ -37,15 +37,16 @@ print("Sonar configured, listening for UDP packets...")
 sock = wlsonar.open_sonar_udp_socket()
 try:
     while True:
-        packet, _ = sock.recvfrom(wlsonar.UDP_MAX_DATAGRAM_SIZE)
+        packet, addr = sock.recvfrom(wlsonar.UDP_MAX_DATAGRAM_SIZE)
         try:
             msg = rip.unpackb(packet)
         except rip.UnknownProtobufTypeError:
+            # skip unknown packet type
             continue
         if isinstance(msg, rip.RangeImage):
             xyz = wlsonar.range_image_to_xyz(msg)
             id = msg.header.sequence_id
-            print(f"Got range image {id} with {len(xyz)} voxels")
+            print(f"Got range image {id} with {len(xyz)} voxels from source ip {addr[0]}")
 finally:
     sock.close()
 ```
