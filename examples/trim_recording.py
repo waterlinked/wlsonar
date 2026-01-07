@@ -66,7 +66,8 @@ if __name__ == "__main__":
             except rip.UnknownProtobufTypeError:
                 continue  # unknown type, ignore
             except EOFError:
-                break  # end of file, stop processing
+                # end of file
+                break
             packet_end = infile.tell()
 
             header: rip.Header = msg.header  # type: ignore

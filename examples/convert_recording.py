@@ -60,6 +60,9 @@ if __name__ == "__main__":
             except rip.UnknownProtobufTypeError:
                 # silently skip unknown packet types
                 continue
+            except EOFError:
+                # end of file
+                break
 
             n_packets += 1
 

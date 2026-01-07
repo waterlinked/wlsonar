@@ -193,6 +193,7 @@ def unpack(
             known_message_types.
         BadIDError: If the packet identifier is invalid.
         CRCMismatchError: If the packet CRC does not match.
+        EOFError: End of file.
         Exception: May raise other exceptions.
     """
     if known_message_types is None:
