@@ -1,6 +1,6 @@
 # Development and testing
 
-`uv` is required for development of the package. Run the following to set up the project:
+[`uv`](https://docs.astral.sh/uv/) is required for development of the package. Run the following to set up the project:
 
 ```bash
 uv sync
