@@ -7,9 +7,12 @@ on:
       - v*
 
 jobs:
+  check:
+    uses: ./.github/workflows/check.yml
   pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    needs: check
     environment:
       name: pypi
     permissions:
