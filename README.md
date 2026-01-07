@@ -1,6 +1,6 @@
 # wlsonar
 
-Package wlsonar is a python client library for the Water Linked [Sonar 3D-15](https://www.waterlinked.com/shop/wl-21045-2-sonar-3d-15-689).
+Package wlsonar is a Python client library for the Water Linked [Sonar 3D-15](https://www.waterlinked.com/shop/wl-21045-2-sonar-3d-15-689).
 
 The key features of this package are:
 
