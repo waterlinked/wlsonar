@@ -24,7 +24,7 @@ import wlsonar
 import wlsonar.range_image_protocol as rip
 
 # (set to your sonar's IP address
-ip = "10.1.2.24"
+ip = "10.1.2.139"
 
 # connect, enable acoustics, configure to send images over UDP multicast
 sonar = wlsonar.Sonar3D(ip)
@@ -34,19 +34,19 @@ sonar.set_udp_multicast()
 print("Sonar configured, listening for UDP packets...")
 
 # receive UDP packets, parse them into protobuf, and extract voxels
-sock = wlsonar.open_sonar_udp_socket()
+sock = wlsonar.open_sonar_udp_multicast_socket()
 try:
     while True:
         packet, addr = sock.recvfrom(wlsonar.UDP_MAX_DATAGRAM_SIZE)
         try:
             msg = rip.unpackb(packet)
         except rip.UnknownProtobufTypeError:
-            # skip unknown packet type
+            # silently skip unknown packet types
             continue
         if isinstance(msg, rip.RangeImage):
             xyz = wlsonar.range_image_to_xyz(msg)
             id = msg.header.sequence_id
-            print(f"Got range image {id} with {len(xyz)} voxels from source ip {addr[0]}")
+            print(f"Got range image {id} with {len(xyz)} voxels")
 finally:
     sock.close()
 ```
