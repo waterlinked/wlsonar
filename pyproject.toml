@@ -14,8 +14,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = https://www.waterlinked.com/3dsonar
-Repository = https://github.com/waterlinked/wlsonar
+Homepage = "https://www.waterlinked.com/3dsonar"
+Repository = "https://github.com/waterlinked/wlsonar"
 
 [build-system]
 requires = ["uv_build>=0.9.22,<0.10.0"]
