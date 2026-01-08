@@ -9,8 +9,6 @@ import requests
 
 from ._semver import _semver_is_less_than
 
-DEFAULT_MCAST_GRP = "224.0.0.96"
-DEFAULT_MCAST_PORT = 4747
 UDP_MAX_DATAGRAM_SIZE = 65507
 FALLBACK_IP = "192.168.194.96"
 

@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import DefaultDict, Set
 
 import wlsonar.range_image_protocol as rip
-from wlsonar import UDP_MAX_DATAGRAM_SIZE, open_sonar_udp_socket
+from wlsonar import UDP_MAX_DATAGRAM_SIZE, Sonar3D, open_sonar_udp_multicast_socket
 
 
 def human_readable_size(size: int) -> str:
@@ -22,7 +22,7 @@ def human_readable_size(size: int) -> str:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Example use of wlsonar module: Record UDP packets from Sonar 3D-15 to a "
+            "Example use of wlsonar module: Record UDP multicast packets from Sonar 3D-15 to a "
             + ".sonar file, which can be opened in https://sonar.replay.waterlinked.com/"
         ),
     )
@@ -49,7 +49,12 @@ if __name__ == "__main__":
         "--seconds",
         type=int,
         default=None,
-        help="Record for this many seconds " + "and then exit (default: run until interrupted)",
+        help="Record for this many seconds and then exit (default: run until interrupted)",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Requires --ip setting. Verify configuration of sonar before starting to record.",
     )
     parser.add_argument(
         "--log-every-ms",
@@ -69,6 +74,22 @@ if __name__ == "__main__":
         print(f"Filtering packets from Sonar IP: {args.ip}")
     if args.seconds is not None:
         print(f"Will record for {args.seconds} seconds.")
+
+    if args.verify:
+        if args.ip is None:
+            raise ValueError("--verify requires --ip")
+        sonar = Sonar3D(ip=args.ip)
+
+        # verify multicast
+        udp_config = sonar.get_udp_config()
+        if udp_config.mode != "multicast":
+            raise RuntimeError("Sonar is not configured for multicast")
+        print("Sonar with --ip is configured for multicast: OK")
+        # verify acoustics enabled
+        if not sonar.get_acoustics_enabled():
+            raise RuntimeError("Sonar has acoustics disabled")
+        print("Sonar with --ip has acoustics enabled: OK")
+
     print()
 
     # stats
@@ -82,7 +103,7 @@ if __name__ == "__main__":
         kwargs["iface_ip"] = args.iface_ip
     if args.udp_port is not None:
         kwargs["udp_port"] = args.udp_port
-    sock = open_sonar_udp_socket(**kwargs)
+    sock = open_sonar_udp_multicast_socket(**kwargs)
     sock.settimeout(1.0)
     try:
         # receive packets and write to open file

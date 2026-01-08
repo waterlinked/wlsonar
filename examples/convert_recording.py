@@ -32,7 +32,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
             "Example use of wlsonar module: Convert the first -n packets to .xyz and "
-            + ".png files"
+            ".png files. .xyz is a simple file format for point clouds, which can be opened in "
+            " for example Meshlab"
         ),
     )
     parser.add_argument("--file", required=True, type=str, help="Input .sonar file")
@@ -43,7 +44,7 @@ if __name__ == "__main__":
         "--output-folder",
         required=True,
         type=str,
-        help="Output folder for .xyz and .png files (default: ./)",
+        help="Output folder for .xyz and .png files",
     )
     args = parser.parse_args()
 
@@ -60,6 +61,9 @@ if __name__ == "__main__":
             except rip.UnknownProtobufTypeError:
                 # silently skip unknown packet types
                 continue
+            except EOFError:
+                # end of file
+                break
 
             n_packets += 1
 

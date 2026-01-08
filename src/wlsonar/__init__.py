@@ -5,14 +5,17 @@ Sonar 3D-15.
 """
 
 from ._client import (
-    DEFAULT_MCAST_GRP,
-    DEFAULT_MCAST_PORT,
     FALLBACK_IP,
     UDP_MAX_DATAGRAM_SIZE,
     Sonar3D,
     UdpConfig,
 )
-from ._udp_helper import open_sonar_udp_socket
+from ._udp_helper import (
+    DEFAULT_MCAST_GRP,
+    DEFAULT_MCAST_PORT,
+    open_sonar_udp_multicast_socket,
+    open_sonar_udp_unicast_socket,
+)
 from ._xyz_helper import range_image_to_xyz
 
 __all__ = [
@@ -22,6 +25,7 @@ __all__ = [
     "UDP_MAX_DATAGRAM_SIZE",
     "Sonar3D",
     "UdpConfig",
-    "open_sonar_udp_socket",
+    "open_sonar_udp_multicast_socket",
+    "open_sonar_udp_unicast_socket",
     "range_image_to_xyz",
 ]
