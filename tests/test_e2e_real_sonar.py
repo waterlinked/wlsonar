@@ -1,6 +1,9 @@
+from typing import Literal, cast
+
 import pytest
 
-from wlsonar import Sonar3D, UdpConfig
+from wlsonar import Sonar3D, UdpConfig, VersionException
+from wlsonar._semver import _semver_is_less_than
 
 
 @pytest.mark.e2e
@@ -18,6 +21,9 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
     sonar through its HTTP API. It does not test the sonar itself. For example, it tests that we can
     enable acoustics, but does not test that this causes the sonar to actually start producing sonar
     images.
+
+    Example use:
+        uv run pytest -s -m e2e --sonar-ip 10.1.2.156
     """
     sonar_ip = request.config.getoption("--sonar-ip")
     assert sonar_ip is not None and isinstance(sonar_ip, str), (
@@ -39,8 +45,16 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
     about = sonar.about()
     print("Sonar about:", about)
 
-    status = sonar.get_status()
-    print("Sonar status:", status)
+    if _semver_is_less_than(about.version_short, "1.7.0"):
+        with pytest.raises(VersionException):
+            sonar.get_status()
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .get_status. "
+            "Got expected VersionException."
+        )
+    else:
+        status = sonar.get_status()
+        print("Sonar status:", status)
 
     temperature = sonar.get_temperature()
     print(f"Sonar temperature: {temperature:.2f} °C")
@@ -156,5 +170,78 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
     reset_udp_config = sonar.get_udp_config()
     print("Sonar UDP config after resetting:", reset_udp_config)
     assert reset_udp_config == existing_udp_config, "Failed to reset UDP config"
+
+    ################################################################################################
+    # mode
+    ################################################################################################
+
+    if _semver_is_less_than(sonar.sonar_version, "1.7.0"):
+        with pytest.raises(VersionException):
+            sonar.get_mode()
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .get_mode. "
+            "Got expected VersionException."
+        )
+        with pytest.raises(VersionException):
+            sonar.set_mode("low-frequency")
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .set_mode. "
+            "Got expected VersionException."
+        )
+    else:
+        had_mode = sonar.get_mode()
+        print(f"Sonar mode: {had_mode}")
+
+        # try toggling mode
+
+        # determine the mode we are not currently using
+        other_mode = "high-frequency" if had_mode == "low-frequency" else "low-frequency"
+        # cast: make type checker happy
+        other_mode = cast(Literal["low-frequency", "high-frequency"], other_mode)
+
+        sonar.set_mode(other_mode)
+        mode_after_toggle = sonar.get_mode()
+        print(f"Toggled sonar mode to: {mode_after_toggle}")
+        assert mode_after_toggle == other_mode, "Failed to toggle mode"
+        sonar.set_mode(had_mode)
+        mode_after_toggle_back = sonar.get_mode()
+        print(f"Toggled sonar mode back to: {mode_after_toggle_back}")
+        assert mode_after_toggle_back == had_mode, "Failed to toggle mode back"
+
+    ####################################################################################################
+    # salinity
+    ####################################################################################################
+
+    if _semver_is_less_than(sonar.sonar_version, "1.7.0"):
+        with pytest.raises(VersionException):
+            sonar.get_salinity()
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .get_salinity. "
+            "Got expected VersionException."
+        )
+        with pytest.raises(VersionException):
+            sonar.set_salinity("salt")
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .set_salinity. "
+            "Got expected VersionException."
+        )
+    else:
+        had_salinity = sonar.get_salinity()
+        print(f"Sonar salinity: {had_salinity}")
+
+        # toggle salinity type
+
+        # determine the salinity we are not currently using
+        other_salinity = "salt" if had_salinity == "fresh" else "fresh"
+        other_salinity = cast(Literal["salt", "fresh"], other_salinity)  # make type checker happy
+
+        sonar.set_salinity(other_salinity)
+        salinity_after_toggle = sonar.get_salinity()
+        print(f"Toggled salinity to: {salinity_after_toggle}")
+        assert salinity_after_toggle == other_salinity, "Failed to toggle salinity"
+        sonar.set_salinity(had_salinity)
+        salinity_after_toggle_back = sonar.get_salinity()
+        print(f"Toggled salinity back to: {salinity_after_toggle_back}")
+        assert salinity_after_toggle_back == had_salinity, "Failed to toggle salinity back"
 
     print("Sonar3D client tested against real sonar: all checks passed.")

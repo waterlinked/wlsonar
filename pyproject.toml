@@ -1,6 +1,6 @@
 [project]
 name = "wlsonar"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python client and Range Image Protocol utilities for Water Linked Sonar 3D-15."
 readme = "README.md"
 authors = [

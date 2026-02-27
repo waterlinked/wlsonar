@@ -9,6 +9,7 @@ from ._client import (
     UDP_MAX_DATAGRAM_SIZE,
     Sonar3D,
     UdpConfig,
+    VersionException,
 )
 from ._udp_helper import (
     DEFAULT_MCAST_GRP,
@@ -25,6 +26,7 @@ __all__ = [
     "UDP_MAX_DATAGRAM_SIZE",
     "Sonar3D",
     "UdpConfig",
+    "VersionException",
     "open_sonar_udp_multicast_socket",
     "open_sonar_udp_unicast_socket",
     "range_image_to_xyz",
