@@ -71,8 +71,8 @@ class StatusEntry:
     message: str
     # Operational is true if the system is functional, false if it is not
     operational: bool
-    # Severity is the severity of the status message: info, warning, error
-    severity: str
+    # Status is "ok", "warning", or "error"
+    status: str
 
 
 @dataclass
@@ -81,10 +81,18 @@ class Status:
 
     # IntegrationAPI is the status of the UDP IntegrationAPI for external communication
     api: StatusEntry
-    # Calibration is the status of the Sonar calibration
-    calibration: StatusEntry
     # Temperature is the status of the Sonar temperature
     temperature: StatusEntry
+    # SystemsCheck is the status of internal processing of the Sonar
+    systems_check: StatusEntry
+
+
+class VersionException(Exception):
+    def __init__(self, what: str, min_version: str, sonar_version: str) -> None:
+        super().__init__(
+            f"{what} requires Sonar 3D-15 release {min_version} or newer. "
+            f"Detected version: {sonar_version}"
+        )
 
 
 class Sonar3D:
@@ -97,11 +105,11 @@ class Sonar3D:
     def __init__(self, ip: str, port: int = 80, timeout: float = 5.0) -> None:
         """Initialize the Sonar3D client.
 
-        Requires minimum Sonar 3D-15 release version 1.5.1. Some API methods may require later
-        versions.
-
         Gets sonar release version in order to verify connectivity and check compatibility in later
         requests.
+
+        Requires:
+            Sonar 3D-15 release 1.5.1 or higher. Some API methods require later versions.
 
         Args:
             ip: IP address or hostname of the Sonar device.
@@ -111,6 +119,7 @@ class Sonar3D:
 
         Raises:
             requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support the Sonar3D client
         """
         self.ip = ip
         self.base_url = f"http://{ip}:{port}"
@@ -122,11 +131,9 @@ class Sonar3D:
             raise RuntimeError(f"Could not connect to Sonar 3D-15 at {ip}:{port}") from e
         self.sonar_version = about.version_short
 
-        if _semver_is_less_than(self.sonar_version, "1.5.1"):
-            raise RuntimeError(
-                "Sonar3D client requires Sonar 3D-15 release 1.5.1 or newer. "
-                f"Detected version: {self.sonar_version}"
-            )
+        min_version = "1.5.1"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client", min_version, self.sonar_version)
 
     ############################################################################
     # HTTP helpers
@@ -206,12 +213,18 @@ class Sonar3D:
     def get_status(self) -> Status:
         """Get system status.
 
-        Returns:
-            Status: status information.
+        Requires:
+            Sonar 3D-15 release 1.7.0 or higher.
 
         Raises:
             requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
         """
+        min_version = "1.7.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            # see release notes of sonar release 1.7.0 for context
+            raise VersionException("Sonar3D client .get_status", min_version, self.sonar_version)
+
         resp = self._get_json("/api/v1/integration/status")
         if not isinstance(resp, dict):
             raise ValueError("status endpoint gave unexpected response")
@@ -222,17 +235,17 @@ class Sonar3D:
                 and isinstance(resp["api"]["id"], str)
                 and isinstance(resp["api"]["message"], str)
                 and isinstance(resp["api"]["operational"], bool)
-                and isinstance(resp["api"]["severity"], str)
-                and isinstance(resp["calibration"], dict)
-                and isinstance(resp["calibration"]["id"], str)
-                and isinstance(resp["calibration"]["message"], str)
-                and isinstance(resp["calibration"]["operational"], bool)
-                and isinstance(resp["calibration"]["severity"], str)
+                and isinstance(resp["api"]["status"], str)
                 and isinstance(resp["temperature"], dict)
                 and isinstance(resp["temperature"]["id"], str)
                 and isinstance(resp["temperature"]["message"], str)
                 and isinstance(resp["temperature"]["operational"], bool)
-                and isinstance(resp["temperature"]["severity"], str)
+                and isinstance(resp["temperature"]["status"], str)
+                and isinstance(resp["systems_check"], dict)
+                and isinstance(resp["systems_check"]["id"], str)
+                and isinstance(resp["systems_check"]["message"], str)
+                and isinstance(resp["systems_check"]["operational"], bool)
+                and isinstance(resp["systems_check"]["status"], str)
             ):
                 raise RuntimeError("status endpoint gave unexpected response")
             status = Status(
@@ -240,19 +253,19 @@ class Sonar3D:
                     id=resp["api"]["id"],
                     message=resp["api"]["message"],
                     operational=resp["api"]["operational"],
-                    severity=resp["api"]["severity"],
-                ),
-                calibration=StatusEntry(
-                    id=resp["calibration"]["id"],
-                    message=resp["calibration"]["message"],
-                    operational=resp["calibration"]["operational"],
-                    severity=resp["calibration"]["severity"],
+                    status=resp["api"]["status"],
                 ),
                 temperature=StatusEntry(
                     id=resp["temperature"]["id"],
                     message=resp["temperature"]["message"],
                     operational=resp["temperature"]["operational"],
-                    severity=resp["temperature"]["severity"],
+                    status=resp["temperature"]["status"],
+                ),
+                systems_check=StatusEntry(
+                    id=resp["systems_check"]["id"],
+                    message=resp["systems_check"]["message"],
+                    operational=resp["systems_check"]["operational"],
+                    status=resp["systems_check"]["status"],
                 ),
             )
         except KeyError as e:
@@ -351,6 +364,90 @@ class Sonar3D:
             requests.RequestException: on HTTP or connection error.
         """
         self._post_json("/api/v1/integration/udp", cfg.to_json())
+
+    def get_mode(self) -> Literal["low-frequency", "high-frequency"]:
+        """Get sonar mode.
+
+        Requires:
+            Sonar 3D-15 release 1.7.0 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client .get_mode", min_version, self.sonar_version)
+        resp = self._get_json("/api/v1/integration/acoustics/mode")
+        if not isinstance(resp, str):
+            raise ValueError("get_mode endpoint gave unexpected response")
+        if resp == "low-frequency":
+            return "low-frequency"
+        if resp == "high-frequency":
+            return "high-frequency"
+        raise ValueError("get_mode endpoint gave unexpected string")
+
+    def set_mode(self, mode: Literal["low-frequency", "high-frequency"]) -> None:
+        """Set sonar mode.
+
+        Requires:
+            Sonar 3D-15 release 1.7.0 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client .set_mode", min_version, self.sonar_version)
+        if mode == "low-frequency":
+            self._post_json("/api/v1/integration/acoustics/mode", "low-frequency")
+        elif mode == "high-frequency":
+            self._post_json("/api/v1/integration/acoustics/mode", "high-frequency")
+        else:
+            raise ValueError(f"set_mode got invalid mode: {mode}")
+
+    def get_salinity(self) -> Literal["salt", "fresh"]:
+        """Get configured salinity for automatic speed of sound calculation.
+
+        Requires:
+            Sonar 3D-15 release 1.7.0 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client .get_salinity", min_version, self.sonar_version)
+        resp = self._get_json("/api/v1/integration/acoustics/salinity")
+        if not isinstance(resp, str):
+            raise ValueError("get_salinity endpoint gave unexpected response")
+        if resp == "salt":
+            return "salt"
+        if resp == "fresh":
+            return "fresh"
+        raise ValueError("get_salinity endpoint gave unexpected string")
+
+    def set_salinity(self, mode: Literal["salt", "fresh"]) -> None:
+        """Set salinity for automatic speed of sound calculation.
+
+        Requires:
+            Sonar 3D-15 release 1.7.0 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client .set_salinity", min_version, self.sonar_version)
+        if mode == "salt":
+            self._post_json("/api/v1/integration/acoustics/salinity", "salt")
+        elif mode == "fresh":
+            self._post_json("/api/v1/integration/acoustics/salinity", "fresh")
+        else:
+            raise ValueError(f"set_salinity got invalid mode: {mode}")
 
     ################################################################################################
     # Convenience methods
