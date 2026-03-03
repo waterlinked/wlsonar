@@ -50,7 +50,7 @@ def open_sonar_udp_multicast_socket(
     Returns:
         A socket.socket object configured to receive UDP packets from the Sonar 3D-15.
     """
-    sock = open_sonar_udp_unicast_socket(udp_port=udp_port, iface_ip=iface_ip)
+    sock = open_sonar_udp_unicast_socket(udp_port=udp_port, iface_ip="")
 
     # Join multicast group on selected interface.
     mreq = struct.pack("=4s4s", socket.inet_aton(mcast_group), socket.inet_aton(iface_ip))
