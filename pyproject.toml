@@ -1,6 +1,6 @@
 [project]
 name = "wlsonar"
-version = "0.3.1"
+version = "0.4.0"
 description = "Python client and Range Image Protocol utilities for Water Linked Sonar 3D-15."
 readme = "README.md"
 authors = [
@@ -8,9 +8,9 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "protobuf>=6.33.2",
-    "python-snappy>=0.7.3",
-    "requests>=2.32.5",
+    "protobuf>=6.33.2,<7",
+    "python-snappy>=0.7.3,<0.8",
+    "requests>=2.32.5,<3",
 ]
 
 [project.urls]
@@ -27,12 +27,11 @@ disallow_untyped_defs = true
 
 [dependency-groups]
 dev = [
-    "mypy>=1.19.1",
-    "mypy-protobuf>=4.0.0",
-    "pdbpp>=0.11.7",
-    "pillow>=12.1.0",
-    "pytest>=9.0.2",
-    "ruff>=0.14.10",
+    "mypy>=1.19.1,<2",
+    "mypy-protobuf>=4.0.0,<5",
+    "pdbpp>=0.11.7,<0.12",
+    "pytest>=9.0.2,<10",
+    "ruff>=0.14.10,<0.15",
 ]
 
 [[tool.mypy.overrides]]
