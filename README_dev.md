@@ -6,6 +6,10 @@
 uv sync
 ```
 
+## Examples
+
+To run the example code with a locally edited version of wlsonar, use: `uv run --with-editable . examples/trim_recording.py`.
+
 ## Linting
 
 The package is linted with `ruff` and `mypy`:
@@ -13,7 +17,7 @@ The package is linted with `ruff` and `mypy`:
 ```bash
 uv run ruff check
 uv run ruff format --diff
-uv run mypy .
+uv run mypy . --exclude examples
 ```
 
 ## Testing

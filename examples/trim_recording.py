@@ -1,7 +1,14 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "wlsonar>=0.3.1,<0.5",
+# ]
+# ///
 """Example use of wlsonar module to trim a .sonar recording by timestamps."""
 
 import argparse
 import datetime
+from importlib.metadata import version
 from typing import Optional
 
 import wlsonar.range_image_protocol as rip
@@ -27,6 +34,8 @@ def parse_time(timestr: str) -> datetime.time:
 
 
 if __name__ == "__main__":
+    print(f"wlsonar version: {version('wlsonar')}")
+
     parser = argparse.ArgumentParser(
         description=(
             "Example use of wlsonar module: Trim the a .sonar recording to include only packets"

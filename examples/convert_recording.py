@@ -1,7 +1,15 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pillow>=12.1.0,<13",
+#     "wlsonar>=0.3.1,<0.5",
+# ]
+# ///
 """Example use of wlsonar module to convert .sonar recordings to .xyz and .png files."""
 
 import argparse
 import os
+from importlib.metadata import version
 
 from PIL import Image
 
@@ -29,6 +37,8 @@ def make_filename(header: rip.Header, extension: str) -> str:
 
 
 if __name__ == "__main__":
+    print(f"wlsonar version: {version('wlsonar')}")
+
     parser = argparse.ArgumentParser(
         description=(
             "Example use of wlsonar module: Convert the first -n packets to .xyz and "
