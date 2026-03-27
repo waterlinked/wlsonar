@@ -1,8 +1,15 @@
+from datetime import datetime
 from typing import Literal, cast
 
 import pytest
 
-from wlsonar import Sonar3D, UdpConfig, VersionException
+from wlsonar import (
+    NTPConfiguration,
+    Sonar3D,
+    TimeAlreadySynchronizedException,
+    UdpConfig,
+    VersionException,
+)
 from wlsonar._semver import _semver_is_less_than
 
 
@@ -55,6 +62,17 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
     else:
         status = sonar.get_status()
         print("Sonar status:", status)
+
+        if _semver_is_less_than(sonar.sonar_version, "1.7.1"):
+            assert status.time is None, (
+                f"Sonar release {sonar.sonar_version} does not support time "
+                "synchronization features, so expected sonar time status to be None"
+            )
+        else:
+            assert status.time is not None, (
+                f"Sonar release {sonar.sonar_version} supports time "
+                "synchronization features, so expected sonar time status to not be None"
+            )
 
     temperature = sonar.get_temperature()
     print(f"Sonar temperature: {temperature:.2f} °C")
@@ -243,5 +261,79 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
         salinity_after_toggle_back = sonar.get_salinity()
         print(f"Toggled salinity back to: {salinity_after_toggle_back}")
         assert salinity_after_toggle_back == had_salinity, "Failed to toggle salinity back"
+
+    ################################################################################################
+    # time
+    ################################################################################################
+
+    if _semver_is_less_than(sonar.sonar_version, "1.7.1"):
+        with pytest.raises(VersionException):
+            sonar.set_time_manual(datetime.now())
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .set_time_manual. "
+            "Got expected VersionException."
+        )
+
+        with pytest.raises(VersionException):
+            sonar.set_time_ntp(NTPConfiguration(ntp_address="foo"))
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .set_time_ntp. "
+            "Got expected VersionException."
+        )
+
+        with pytest.raises(VersionException):
+            sonar.get_time_ntp()
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .get_time_ntp. "
+            "Got expected VersionException."
+        )
+
+        with pytest.raises(VersionException):
+            sonar.get_time_status()
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .get_time_status. "
+            "Got expected VersionException."
+        )
+
+        with pytest.raises(VersionException):
+            sonar.force_sync_ntp(10)
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .force_sync_ntp. "
+            "Got expected VersionException."
+        )
+
+        assert sonar.get_status().time is None, (
+            "Expected sonar time status to be None when sonar does not support time "
+            "synchronization features"
+        )
+    else:
+        # smoke tests
+        try:
+            sonar.set_time_manual(datetime.now())
+            print("Successfully set sonar time manually.")
+        except TimeAlreadySynchronizedException:
+            print(
+                "Got expected TimeAlreadySynchronizedException when trying to set "
+                "time manually while time is already synchronized."
+            )
+
+        with pytest.raises(ValueError):
+            sonar.set_time_ntp(NTPConfiguration(ntp_address=" bad ;;ø"))
+        print("Got expected ValueError when trying to set NTP config with invalid NTP address.")
+
+        sonar.set_time_ntp(NTPConfiguration(ntp_address="192.168.1.1"))
+        print("Successfully set sonar NTP config.")
+
+        cfg = sonar.get_time_ntp()
+        print(f"Got sonar NTP config: {cfg}")
+
+        time_status = sonar.get_time_status()
+        print(f"Got sonar time status: {time_status}")
+
+        resp = sonar.force_sync_ntp(3)
+        print(f"Got response from forcing NTP sync: {resp}")
+
+        # NOTE: not testing "force sync already ongoing" because not trivial to reliably trigger in
+        # a test
 
     print("Sonar3D client tested against real sonar: all checks passed.")

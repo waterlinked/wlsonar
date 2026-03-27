@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Literal, Union, cast
 
@@ -85,6 +86,73 @@ class Status:
     temperature: StatusEntry
     # SystemsCheck is the status of internal processing of the Sonar
     systems_check: StatusEntry
+    # Time is the status of system time. Only available on sonar release >=1.7.1
+    time: StatusEntry | None
+
+
+@dataclass
+class NTPConfiguration:
+    """NTP configuration."""
+
+    # address or "auto"
+    ntp_address: str
+
+    @classmethod
+    def from_json(cls, data: dict) -> NTPConfiguration:
+        """from_json creates NTPConfiguration from JSON dict from HTTP API."""
+        return cls(
+            ntp_address=data["ntp_address"],
+        )
+
+    def to_json(self) -> dict:
+        """to_json converts NTPConfiguration to JSON dict for HTTP API."""
+        return {
+            "ntp_address": self.ntp_address,
+        }
+
+
+@dataclass
+class TimeStatus:
+    """Sonar time status information."""
+
+    system_time: datetime.datetime
+    ntp_synced: bool
+    ntp_synced_to: str
+    ntp_seconds_since_last_sync: int | None
+
+    @classmethod
+    def from_json(cls, data: dict) -> TimeStatus:
+        """from_json creates TimeStatus from JSON dict from HTTP API."""
+        # Python 3.10 doesn't support Z suffix
+        # TODO(if raising required Python version to >=3.11): consider removing this Z workaround
+        system_time_workaround = data["system_time"].replace("Z", "+00:00")
+
+        return cls(
+            system_time=datetime.datetime.fromisoformat(system_time_workaround),
+            ntp_synced=data["ntp_synced"],
+            ntp_synced_to=data["ntp_synced_to"],
+            ntp_seconds_since_last_sync=data["ntp_seconds_since_last_sync"],
+        )
+
+
+@dataclass
+class ForceSyncNTPResponse:
+    """Response from force_sync_ntp."""
+
+    success: bool
+    message: str
+    status: TimeStatus
+
+    @classmethod
+    def from_json(cls, data: dict) -> ForceSyncNTPResponse:
+        """from_json creates ForceSyncNTPResponse from JSON dict from HTTP API."""
+        if "success" not in data or "message" not in data or "status" not in data:
+            raise ValueError("force_sync_ntp endpoint gave unexpected response (missing fields)")
+        return cls(
+            success=data["success"],
+            message=data["message"],
+            status=TimeStatus.from_json(data["status"]),
+        )
 
 
 class VersionException(Exception):
@@ -93,6 +161,16 @@ class VersionException(Exception):
             f"{what} requires Sonar 3D-15 release {min_version} or newer. "
             f"Detected version: {sonar_version}"
         )
+
+
+class TimeAlreadySynchronizedException(Exception):
+    def __init__(self) -> None:
+        super().__init__("System time is already synchronized. Cannot set manual time.")
+
+
+class ForceSyncAlreadyOngoing(Exception):
+    def __init__(self) -> None:
+        super().__init__("A force-sync operation is already ongoing. Cannot start another one.")
 
 
 class Sonar3D:
@@ -115,7 +193,8 @@ class Sonar3D:
             ip: IP address or hostname of the Sonar device.
             port: Port number of the Sonar device HTTP API. You should not have to change this from
                 the default.
-            timeout: Timeout in seconds for HTTP requests.
+            timeout: Timeout in seconds for HTTP requests. Except for the force_sync_ntp method,
+                which has its own timeout parameter.
 
         Raises:
             requests.RequestException: on HTTP or connection error.
@@ -154,14 +233,16 @@ class Sonar3D:
             return None
         return cast(Json, r.json())
 
-    def _post_json(self, path: str, json_payload: Json) -> Json:
+    def _post_json(self, path: str, json_payload: Json, timeout: None | float = None) -> Json:
         """POST JSON.
 
         _post_json posts the given JSON payload to path and raises exception on non-2xx status code.
         If response contains no content, it returns None. If response contains content, it is
         returned.
         """
-        r = requests.post(self._url(path), json=json_payload, timeout=self.timeout)
+        if timeout is None:
+            timeout = self.timeout
+        r = requests.post(self._url(path), json=json_payload, timeout=timeout)
         r.raise_for_status()
         if r.status_code == 204 or not r.content:
             return None
@@ -267,10 +348,31 @@ class Sonar3D:
                     operational=resp["systems_check"]["operational"],
                     status=resp["systems_check"]["status"],
                 ),
+                time=None,
             )
+
+            if _semver_is_less_than(self.sonar_version, "1.7.1"):
+                return status
+            # release >=1.7.1: has time status
+
+            if not (
+                isinstance(resp["time"], dict)
+                and isinstance(resp["time"]["id"], str)
+                and isinstance(resp["time"]["message"], str)
+                and isinstance(resp["time"]["operational"], bool)
+                and isinstance(resp["time"]["status"], str)
+            ):
+                raise RuntimeError("status endpoint gave unexpected response (missing time status)")
+            status.time = StatusEntry(
+                id=resp["time"]["id"],
+                message=resp["time"]["message"],
+                operational=resp["time"]["operational"],
+                status=resp["time"]["status"],
+            )
+            return status
+
         except KeyError as e:
             raise ValueError(f"status endpoint missing expected field: {e}") from e
-        return status
 
     def get_temperature(self) -> float:
         """Get internal temperature (°C).
@@ -448,6 +550,122 @@ class Sonar3D:
             self._post_json("/api/v1/integration/acoustics/salinity", "fresh")
         else:
             raise ValueError(f"set_salinity got invalid mode: {mode}")
+
+    def get_time_status(self) -> TimeStatus:
+        """Get time status.
+
+        Requires:
+            Sonar 3D-15 release 1.7.1 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.1"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException(
+                "Sonar3D client .get_time_status", min_version, self.sonar_version
+            )
+        resp = self._get_json("/api/v1/integration/time/status")
+        if not isinstance(resp, dict):
+            raise ValueError("get_time_status endpoint gave unexpected response")
+        return TimeStatus.from_json(resp)
+
+    def set_time_manual(self, manual_time: datetime.datetime) -> None:
+        """Set system time manually.
+
+        Requires:
+            Sonar 3D-15 release 1.7.1 or higher.
+
+        Raises:
+            TimeAlreadySynchronizedException: if system time is already synchronized.
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.1"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException(
+                "Sonar3D client .set_time_manual", min_version, self.sonar_version
+            )
+        try:
+            self._post_json(
+                "/api/v1/integration/time/manual",
+                {"now": manual_time.astimezone(datetime.timezone.utc).isoformat()},
+            )
+        except requests.HTTPError as e:
+            if e.response.status_code == 409:
+                raise TimeAlreadySynchronizedException()
+            raise
+
+    def get_time_ntp(self) -> NTPConfiguration:
+        """Get NTP configuration.
+
+        Requires:
+            Sonar 3D-15 release 1.7.1 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.1"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client .get_time_ntp", min_version, self.sonar_version)
+        resp = self._get_json("/api/v1/integration/time/ntp")
+        if not isinstance(resp, dict):
+            raise ValueError("get_time_ntp endpoint gave unexpected response")
+        return NTPConfiguration.from_json(resp)
+
+    def set_time_ntp(self, config: NTPConfiguration) -> None:
+        """Set NTP configuration.
+
+        Requires:
+            Sonar 3D-15 release 1.7.1 or higher.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.1"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException("Sonar3D client .set_time_ntp", min_version, self.sonar_version)
+        if not isinstance(config, NTPConfiguration):
+            raise ValueError("set_time_ntp got invalid config object")
+        try:
+            self._post_json("/api/v1/integration/time/ntp", config.to_json())
+        except requests.HTTPError as e:
+            if e.response.status_code == 400:
+                raise ValueError("set_time_ntp got invalid NTP configuration") from e
+            raise
+
+    def force_sync_ntp(self, timeout_seconds: float) -> ForceSyncNTPResponse:
+        """Force synchronization with NTP server. TODO: document semantics.
+
+        Requires:
+            Sonar 3D-15 release 1.7.1 or higher.
+
+        Raises:
+            ForceSyncAlreadyOngoing: if a force-sync operation is already ongoing.
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.7.1"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException(
+                "Sonar3D client .force_sync_ntp", min_version, self.sonar_version
+            )
+        try:
+            resp = self._post_json(
+                "/api/v1/integration/time/ntp/force-sync",
+                {"timeout_seconds": timeout_seconds},
+                timeout=self.timeout + timeout_seconds,
+            )
+        except requests.HTTPError as e:
+            if e.response.status_code == 409:
+                raise ForceSyncAlreadyOngoing()
+            raise
+        if not isinstance(resp, dict):
+            raise ValueError("force_sync_ntp endpoint gave unexpected response")
+        return ForceSyncNTPResponse.from_json(resp)
 
     ################################################################################################
     # Convenience methods
