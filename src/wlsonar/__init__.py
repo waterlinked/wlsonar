@@ -11,13 +11,18 @@ from ._client import (
     UdpConfig,
     VersionException,
 )
+from ._msg_helper import (
+    bitmap_image_to_strength_linear,
+    bitmap_image_to_strength_log,
+    range_image_to_distance,
+    range_image_to_xyz,
+)
 from ._udp_helper import (
     DEFAULT_MCAST_GRP,
     DEFAULT_MCAST_PORT,
     open_sonar_udp_multicast_socket,
     open_sonar_udp_unicast_socket,
 )
-from ._xyz_helper import range_image_to_xyz
 
 __all__ = [
     "DEFAULT_MCAST_GRP",
@@ -27,7 +32,10 @@ __all__ = [
     "Sonar3D",
     "UdpConfig",
     "VersionException",
+    "bitmap_image_to_strength_linear",
+    "bitmap_image_to_strength_log",
     "open_sonar_udp_multicast_socket",
     "open_sonar_udp_unicast_socket",
+    "range_image_to_distance",
     "range_image_to_xyz",
 ]

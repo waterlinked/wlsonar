@@ -80,11 +80,15 @@ if __name__ == "__main__":
             if isinstance(msg, rip.RangeImage):
                 filename = make_filename(msg.header, "xyz")
                 path = os.path.join(args.output_folder, filename)
+                wrote = 0
                 with open(path, "w", encoding="ascii") as f_xyz:
-                    xyz = wlsonar.range_image_to_xyz(msg)
-                    for x, y, z in xyz:
-                        f_xyz.write(f"{x} {y} {z}\n")
-                print(f"Wrote {filename} with {len(xyz)} points")
+                    voxels = wlsonar.range_image_to_xyz(msg)
+                    for voxel in voxels:
+                        if voxel is not None:
+                            x, y, z = voxel
+                            f_xyz.write(f"{x} {y} {z}\n")
+                            wrote += 1
+                print(f"Wrote {filename} with {wrote} voxels")
             elif isinstance(msg, rip.BitmapImageGreyscale8):
                 if msg.type != rip.BitmapImageType.SIGNAL_STRENGTH_IMAGE:
                     print(
