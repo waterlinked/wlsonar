@@ -2,7 +2,7 @@
 # requires-python = ">=3.10"
 # dependencies = [
 #     "pillow>=12.1.0,<13",
-#     "wlsonar>=0.3.1,<0.5",
+#     "wlsonar>=0.5,<0.6",
 # ]
 # ///
 """Example use of wlsonar module to convert .sonar recordings to .xyz and .png files."""
