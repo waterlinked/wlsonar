@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "wlsonar>=0.3.1,<0.5",
+#     "wlsonar>=0.5,<0.6",
 # ]
 # ///
 """Example use of wlsonar module to trim a .sonar recording by timestamps."""
