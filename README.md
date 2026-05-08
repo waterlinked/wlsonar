@@ -61,7 +61,7 @@ Documentation for this package is provided in the form of:
 - Tests in [the tests folder](./tests).
 - Docstrings in code.
 
-For general documentation about the Sonar 3D-15 see: https://docs.waterlinked.com/sonar-3d/sonar-3d-15/. The integration API that this package interfaces with is documented here: https://docs.waterlinked.com/sonar-3d/sonar-3d-15-api/. See also the replayer: https://sonar.replay.waterlinked.com/.
+For general documentation about the Sonar 3D-15 see: https://docs.waterlinked.com/sonar-3d/sonar-3d-15-introduction/. The integration API that this package interfaces with is documented here: https://docs.waterlinked.com/sonar-3d/sonar-3d-15-api/. See also the replayer: https://sonar.replay.waterlinked.com/.
 
 ## Development and testing
 
