@@ -3,6 +3,7 @@ The following examples are provided:
 - [record_udp_to_file.py](./record_udp_to_file.py)
 - [convert_recording.py](./convert_recording.py)
 - [trim_recording.py](./trim_recording.py)
+- [imu.py](./imu.py)
 
 The examples declare inline script dependencies. If you have [`uv`](https://docs.astral.sh/uv/) installed, you can `uv run` the examples directly: `uv run examples/trim_recording.py`.
 

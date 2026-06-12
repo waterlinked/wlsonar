@@ -67,3 +67,13 @@ message RangeImage {
   // to the strongest reflection in that direction.
   repeated uint32 image_pixel_data = 10;
 }
+
+// Batch of IMU samples
+message ImuBatch {
+  uint32 batch_sequence_id = 1; // Monotonically increasing id for each batch of IMU samples
+  uint32 samples = 2; // Number of samples in this message
+
+  repeated google.protobuf.Timestamp timestamp = 3; // (samples,)
+  repeated float specific_force = 4; // (samples,3) m/s^2
+  repeated float rate_of_turn = 5; // (samples,3) rad/s
+}

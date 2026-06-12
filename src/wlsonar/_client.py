@@ -381,9 +381,9 @@ class Sonar3D:
             requests.RequestException: on HTTP or connection error.
         """
         resp = self._get_json("/api/v1/integration/temperature")
-        if not isinstance(resp, float):
+        if not isinstance(resp, (float, int)):
             raise ValueError("temperature endpoint gave unexpected response")
-        return resp
+        return float(resp)
 
     def get_acoustics_enabled(self) -> bool:
         """Get whether acoustics is enabled.
@@ -666,6 +666,37 @@ class Sonar3D:
         if not isinstance(resp, dict):
             raise ValueError("force_sync_ntp endpoint gave unexpected response")
         return ForceSyncNTPResponse.from_json(resp)
+
+    def get_output_imu_batch_enabled(self) -> bool:
+        """Get whether ImuBatch output is enabled.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.8.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException(
+                "Sonar3D client .get_output_imu_batch_enabled", min_version, self.sonar_version
+            )
+        resp = self._get_json("/api/v1/integration/output/imu-batch/enabled")
+        if not isinstance(resp, bool):
+            raise ValueError("get_output_imu_batch_enabled endpoint gave unexpected response")
+        return resp
+
+    def set_output_imu_batch_enabled(self, enabled: bool) -> None:
+        """Set whether ImuBatch output is enabled.
+
+        Raises:
+            requests.RequestException: on HTTP or connection error.
+            VersionException: if sonar version is too old to support this method.
+        """
+        min_version = "1.8.0"
+        if _semver_is_less_than(self.sonar_version, min_version):
+            raise VersionException(
+                "Sonar3D client .set_output_imu_batch_enabled", min_version, self.sonar_version
+            )
+        self._post_json("/api/v1/integration/output/imu-batch/enabled", enabled)
 
     ################################################################################################
     # Convenience methods

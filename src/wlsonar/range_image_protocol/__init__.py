@@ -4,6 +4,7 @@ from ._proto.WaterLinkedSonarIntegrationProtocol_pb2 import (
     BitmapImageGreyscale8,
     BitmapImageType,
     Header,
+    ImuBatch,
     Packet,
     RangeImage,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "CRCMismatchError",
     "ExtraDataError",
     "Header",
+    "ImuBatch",
     "Packet",
     "ProtocolVersion",
     "RangeImage",

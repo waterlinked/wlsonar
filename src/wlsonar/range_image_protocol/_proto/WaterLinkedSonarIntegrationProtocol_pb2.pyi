@@ -220,3 +220,44 @@ class RangeImage(google.protobuf.message.Message):
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
 
 Global___RangeImage: typing_extensions.TypeAlias = RangeImage
+
+@typing.final
+class ImuBatch(google.protobuf.message.Message):
+    """Batch of IMU samples"""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    BATCH_SEQUENCE_ID_FIELD_NUMBER: builtins.int
+    SAMPLES_FIELD_NUMBER: builtins.int
+    TIMESTAMP_FIELD_NUMBER: builtins.int
+    SPECIFIC_FORCE_FIELD_NUMBER: builtins.int
+    RATE_OF_TURN_FIELD_NUMBER: builtins.int
+    batch_sequence_id: builtins.int
+    """Monotonically increasing id for each batch of IMU samples"""
+    samples: builtins.int
+    """Number of samples in this message"""
+    @property
+    def timestamp(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[google.protobuf.timestamp_pb2.Timestamp]:
+        """(samples,)"""
+
+    @property
+    def specific_force(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.float]:
+        """(samples,3) m/s^2"""
+
+    @property
+    def rate_of_turn(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.float]:
+        """(samples,3) rad/s"""
+
+    def __init__(
+        self,
+        *,
+        batch_sequence_id: builtins.int = ...,
+        samples: builtins.int = ...,
+        timestamp: collections.abc.Iterable[google.protobuf.timestamp_pb2.Timestamp] | None = ...,
+        specific_force: collections.abc.Iterable[builtins.float] | None = ...,
+        rate_of_turn: collections.abc.Iterable[builtins.float] | None = ...,
+    ) -> None: ...
+    _ClearFieldArgType: typing_extensions.TypeAlias = typing.Literal["batch_sequence_id", b"batch_sequence_id", "rate_of_turn", b"rate_of_turn", "samples", b"samples", "specific_force", b"specific_force", "timestamp", b"timestamp"]
+    def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
+
+Global___ImuBatch: typing_extensions.TypeAlias = ImuBatch

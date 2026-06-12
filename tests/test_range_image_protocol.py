@@ -9,6 +9,7 @@ from wlsonar import range_image_protocol
 from wlsonar.range_image_protocol import (
     BitmapImageGreyscale8,
     Header,
+    ImuBatch,
     RangeImage,
 )
 
@@ -79,6 +80,21 @@ def test_range_image_protocol__packb_unpackb__happy_path(request: pytest.Fixture
     assert isinstance(decoded, RangeImage)
 
     assert_range_images_equal(TEST_RANGE_IMAGE, decoded)
+
+
+def test_range_image_protocol__packb_unpackb__imu_batch(request: pytest.FixtureRequest) -> None:
+    imu_batch = ImuBatch(
+        batch_sequence_id=123,
+        samples=1,
+        timestamp=[Timestamp(seconds=10, nanos=20)],
+        specific_force=[1.0, 2.0, 3.0],
+        rate_of_turn=[4.0, 5.0, 6.0],
+    )
+
+    decoded = range_image_protocol.unpackb(range_image_protocol.packb(imu_batch))
+
+    assert isinstance(decoded, ImuBatch)
+    assert decoded == imu_batch
 
 
 def test_range_image_protocol__bad_crc(
