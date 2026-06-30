@@ -12,6 +12,7 @@ from google.protobuf.message import Message
 
 from . import (
     BitmapImageGreyscale8,
+    ImuBatch,
     Packet,
     RangeImage,
 )
@@ -198,7 +199,7 @@ def unpack(
     """
     if known_message_types is None:
         # Default known types
-        known_message_types = (RangeImage, BitmapImageGreyscale8)
+        known_message_types = (RangeImage, BitmapImageGreyscale8, ImuBatch)
 
     # read the first 8 bytes: identifier + total length
     magic_and_packet_length = f.read(IDENTIFIER_LENGTH + PACKET_LENGTH_LENGTH)

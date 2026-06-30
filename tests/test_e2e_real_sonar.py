@@ -336,4 +336,37 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
         # NOTE: not testing "force sync already ongoing" because not trivial to reliably trigger in
         # a test
 
+    ################################################################################################
+    # ImuBatch
+    ################################################################################################
+
+    if _semver_is_less_than(sonar.sonar_version, "1.8.0"):
+        with pytest.raises(VersionException):
+            sonar.get_output_imu_batch_enabled()
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .get_output_imu_batch_enabled. "
+            "Got expected VersionException."
+        )
+        with pytest.raises(VersionException):
+            sonar.set_output_imu_batch_enabled(True)
+        print(
+            f"Sonar release {sonar.sonar_version} does not support .set_output_imu_batch_enabled. "
+            "Got expected VersionException."
+        )
+    else:
+        had_imu = sonar.get_output_imu_batch_enabled()
+        print(f"Sonar ImuBatch output enabled: {had_imu}")
+
+        # try toggling
+        sonar.set_output_imu_batch_enabled(not had_imu)
+        imu_after_toggle = sonar.get_output_imu_batch_enabled()
+        assert imu_after_toggle == (not had_imu), "Failed to toggle ImuBatch output enabled state"
+        print(f"Toggled Sonar ImuBatch output enabled to: {imu_after_toggle}")
+        sonar.set_output_imu_batch_enabled(had_imu)
+        imu_after_toggle_back = sonar.get_output_imu_batch_enabled()
+        assert imu_after_toggle_back == had_imu, (
+            "Failed to toggle ImuBatch output enabled state back"
+        )
+        print(f"Toggled Sonar ImuBatch output enabled back to: {imu_after_toggle_back}")
+
     print("Sonar3D client tested against real sonar: all checks passed.")

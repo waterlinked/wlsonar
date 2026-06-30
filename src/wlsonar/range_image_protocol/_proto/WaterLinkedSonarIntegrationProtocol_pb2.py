@@ -15,15 +15,15 @@ from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__
 from google.protobuf import any_pb2 as google_dot_protobuf_dot_any__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)WaterLinkedSonarIntegrationProtocol.proto\x12\x1awaterlinked.sonar.protocol\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19google/protobuf/any.proto\"+\n\x06Packet\x12!\n\x03msg\x18\x01 \x01(\x0b\x32\x14.google.protobuf.Any\"L\n\x06Header\x12-\n\ttimestamp\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x13\n\x0bsequence_id\x18\x02 \x01(\r\"\xa7\x02\n\x15\x42itmapImageGreyscale8\x12\x32\n\x06header\x18\x01 \x01(\x0b\x32\".waterlinked.sonar.protocol.Header\x12\x16\n\x0espeed_of_sound\x18\x02 \x01(\x02\x12\r\n\x05range\x18\x03 \x01(\x02\x12\x11\n\tfrequency\x18\x04 \x01(\r\x12\x39\n\x04type\x18\x05 \x01(\x0e\x32+.waterlinked.sonar.protocol.BitmapImageType\x12\r\n\x05width\x18\x06 \x01(\r\x12\x0e\n\x06height\x18\x07 \x01(\r\x12\x16\n\x0e\x66ov_horizontal\x18\x08 \x01(\x02\x12\x14\n\x0c\x66ov_vertical\x18\t \x01(\x02\x12\x18\n\x10image_pixel_data\x18\n \x01(\x0c\"\xfc\x01\n\nRangeImage\x12\x32\n\x06header\x18\x01 \x01(\x0b\x32\".waterlinked.sonar.protocol.Header\x12\x16\n\x0espeed_of_sound\x18\x02 \x01(\x02\x12\r\n\x05range\x18\x03 \x01(\x02\x12\x11\n\tfrequency\x18\x04 \x01(\r\x12\r\n\x05width\x18\x05 \x01(\r\x12\x0e\n\x06height\x18\x06 \x01(\r\x12\x16\n\x0e\x66ov_horizontal\x18\x07 \x01(\x02\x12\x14\n\x0c\x66ov_vertical\x18\x08 \x01(\x02\x12\x19\n\x11image_pixel_scale\x18\t \x01(\x02\x12\x18\n\x10image_pixel_data\x18\n \x03(\r*>\n\x0f\x42itmapImageType\x12\x19\n\x15SIGNAL_STRENGTH_IMAGE\x10\x00\x12\x10\n\x0cSHADED_IMAGE\x10\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)WaterLinkedSonarIntegrationProtocol.proto\x12\x1awaterlinked.sonar.protocol\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19google/protobuf/any.proto\"+\n\x06Packet\x12!\n\x03msg\x18\x01 \x01(\x0b\x32\x14.google.protobuf.Any\"L\n\x06Header\x12-\n\ttimestamp\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x13\n\x0bsequence_id\x18\x02 \x01(\r\"\xa7\x02\n\x15\x42itmapImageGreyscale8\x12\x32\n\x06header\x18\x01 \x01(\x0b\x32\".waterlinked.sonar.protocol.Header\x12\x16\n\x0espeed_of_sound\x18\x02 \x01(\x02\x12\r\n\x05range\x18\x03 \x01(\x02\x12\x11\n\tfrequency\x18\x04 \x01(\r\x12\x39\n\x04type\x18\x05 \x01(\x0e\x32+.waterlinked.sonar.protocol.BitmapImageType\x12\r\n\x05width\x18\x06 \x01(\r\x12\x0e\n\x06height\x18\x07 \x01(\r\x12\x16\n\x0e\x66ov_horizontal\x18\x08 \x01(\x02\x12\x14\n\x0c\x66ov_vertical\x18\t \x01(\x02\x12\x18\n\x10image_pixel_data\x18\n \x01(\x0c\"\xfc\x01\n\nRangeImage\x12\x32\n\x06header\x18\x01 \x01(\x0b\x32\".waterlinked.sonar.protocol.Header\x12\x16\n\x0espeed_of_sound\x18\x02 \x01(\x02\x12\r\n\x05range\x18\x03 \x01(\x02\x12\x11\n\tfrequency\x18\x04 \x01(\r\x12\r\n\x05width\x18\x05 \x01(\r\x12\x0e\n\x06height\x18\x06 \x01(\r\x12\x16\n\x0e\x66ov_horizontal\x18\x07 \x01(\x02\x12\x14\n\x0c\x66ov_vertical\x18\x08 \x01(\x02\x12\x19\n\x11image_pixel_scale\x18\t \x01(\x02\x12\x18\n\x10image_pixel_data\x18\n \x03(\r\"\x93\x01\n\x08ImuBatch\x12\x19\n\x11\x62\x61tch_sequence_id\x18\x01 \x01(\r\x12\x0f\n\x07samples\x18\x02 \x01(\r\x12-\n\ttimestamp\x18\x03 \x03(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x16\n\x0especific_force\x18\x04 \x03(\x02\x12\x14\n\x0crate_of_turn\x18\x05 \x03(\x02*>\n\x0f\x42itmapImageType\x12\x19\n\x15SIGNAL_STRENGTH_IMAGE\x10\x00\x12\x10\n\x0cSHADED_IMAGE\x10\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'WaterLinkedSonarIntegrationProtocol_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_BITMAPIMAGETYPE']._serialized_start=809
-  _globals['_BITMAPIMAGETYPE']._serialized_end=871
+  _globals['_BITMAPIMAGETYPE']._serialized_start=959
+  _globals['_BITMAPIMAGETYPE']._serialized_end=1021
   _globals['_PACKET']._serialized_start=133
   _globals['_PACKET']._serialized_end=176
   _globals['_HEADER']._serialized_start=178
@@ -32,4 +32,6 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_BITMAPIMAGEGREYSCALE8']._serialized_end=552
   _globals['_RANGEIMAGE']._serialized_start=555
   _globals['_RANGEIMAGE']._serialized_end=807
+  _globals['_IMUBATCH']._serialized_start=810
+  _globals['_IMUBATCH']._serialized_end=957
 # @@protoc_insertion_point(module_scope)
