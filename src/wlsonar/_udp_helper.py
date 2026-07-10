@@ -26,8 +26,11 @@ def open_sonar_udp_unicast_socket(
         A socket.socket object configured to receive UDP packets from the Sonar 3D-15.
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((iface_ip, int(udp_port)))
+    try:
+        sock.bind((iface_ip, udp_port))
+    except BaseException:
+        sock.close()
+        raise
 
     return sock
 
@@ -50,10 +53,16 @@ def open_sonar_udp_multicast_socket(
     Returns:
         A socket.socket object configured to receive UDP packets from the Sonar 3D-15.
     """
-    sock = open_sonar_udp_unicast_socket(udp_port=udp_port, iface_ip="")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("", udp_port))
 
-    # Join multicast group on selected interface.
-    mreq = struct.pack("=4s4s", socket.inet_aton(mcast_group), socket.inet_aton(iface_ip))
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        # Join multicast group on selected interface.
+        mreq = struct.pack("=4s4s", socket.inet_aton(mcast_group), socket.inet_aton(iface_ip))
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    except BaseException:
+        sock.close()
+        raise
 
     return sock

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "wlsonar>=0.5.3,<0.6",
+#     "wlsonar>=0.5.4,<0.6",
 # ]
 # ///
 """Example use of wlsonar module: Receive IMU data and print it."""
@@ -12,7 +12,13 @@ from importlib.metadata import version
 from typing import Set
 
 import wlsonar.range_image_protocol as rip
-from wlsonar import UDP_MAX_DATAGRAM_SIZE, Sonar3D, open_sonar_udp_multicast_socket
+from wlsonar import (
+    DEFAULT_MCAST_PORT,
+    UDP_MAX_DATAGRAM_SIZE,
+    Sonar3D,
+    open_sonar_udp_multicast_socket,
+    open_sonar_udp_unicast_socket,
+)
 
 
 def human_readable_size(size: int) -> str:
@@ -41,7 +47,7 @@ if __name__ == "__main__":
         + "IP address. Otherwise, record from any Sonar.",
     )
     parser.add_argument(
-        "--iface_ip",
+        "--computer-ip",
         type=str,
         default=None,
         help="Local interface IP address to listen on (default: choose automatically)",
@@ -49,8 +55,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--udp-port",
         type=int,
+        default=DEFAULT_MCAST_PORT,
+        help="UDP port to listen on. Default is multicast port",
+    )
+    parser.add_argument(
+        "--udp-mode",
+        choices=("multicast", "unicast"),
         default=None,
-        help="UDP multicast port to listen on (default: choose automatically)",
+        help=(
+            "UDP delivery mode. Defaults to multicast socket, and requires active choice for --cfg "
+            "and --verify"
+        ),
     )
     parser.add_argument(
         "--cfg", action="store_true", help="Requires --ip setting. Configure sonar for this script."
@@ -62,10 +77,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    if args.iface_ip is not None:
-        print(f"Listening on interface with IP: {args.iface_ip}")
-    if args.udp_port is not None:
-        print(f"Listening on UDP port: {args.udp_port}")
+    if args.udp_mode is None:
+        # default to multicast if not specified
+        print("UDP mode: multicast")
+    else:
+        print(f"UDP mode: {args.udp_mode}")
+
+    if args.computer_ip is not None:
+        print(f"Listening on interface with IP: {args.computer_ip}")
+
     if args.ip is not None:
         print(f"Filtering packets from Sonar IP: {args.ip}")
 
@@ -77,12 +97,27 @@ if __name__ == "__main__":
         if args.ip is None or sonar is None:
             raise ValueError("--cfg requires --ip")
 
-        # configure multicast
-        sonar.set_udp_multicast()
-        print("Configured for multicast: OK")
+        # configure UDP
+        if args.udp_mode is None:
+            raise ValueError("--cfg requires --udp-mode")
+        elif args.udp_mode == "multicast":
+            sonar.set_udp_multicast()
+            print("Configured for multicast: OK")
+        elif args.udp_mode == "unicast":
+            if args.computer_ip is None:
+                raise ValueError(
+                    "--cfg for unicast mode requires --computer-ip to configure sonar to send "
+                    "unicast packets to this computer"
+                )
+            sonar.set_udp_unicast(ip=args.computer_ip, port=args.udp_port)
+            print("Configured for unicast directed at --computer-ip and --udp-port: OK")
+        else:
+            raise ValueError(f"invalid --udp-mode: {args.udp_mode}")
+
         # configure acoustics enabled
         sonar.set_acoustics_enabled(True)
         print("Configured for acoustics enabled: OK")
+
         # configure imu output enabled
         sonar.set_output_imu_batch_enabled(True)
         print("Configured for imu output enabled: OK")
@@ -90,16 +125,50 @@ if __name__ == "__main__":
     if args.verify:
         if args.ip is None or sonar is None:
             raise ValueError("--verify requires --ip")
+        if args.udp_mode is None:
+            raise ValueError("--verify requires --udp-mode")
 
-        # verify multicast
+        # verify sonar is configured to send us data
         udp_config = sonar.get_udp_config()
-        if udp_config.mode != "multicast":
-            raise RuntimeError("Sonar is not configured for multicast. Hint: use --cfg")
-        print("Verified multicast configuration: OK")
+        if udp_config.mode == "multicast" and args.udp_mode == "multicast":
+            print("Verified sonar is configured for multicast: OK")
+        elif udp_config.mode == "unicast" and args.udp_mode == "unicast":
+            if args.computer_ip is None:
+                raise ValueError(
+                    "--verify found configuration issue: Sonar is in unicast mode, and --verify "
+                    "for unicast mode requires --computer-ip to check that unicast is directed at "
+                    "this computer"
+                )
+            if (
+                udp_config.unicast_destination_ip != args.computer_ip
+                or udp_config.unicast_destination_port != args.udp_port
+            ):
+                raise ValueError(
+                    "--verify found configuration issue: Sonar is configured for unicast but not "
+                    "directed at --computer-ip and --udp-port. It is directed at "
+                    f"{udp_config.unicast_destination_ip}:{udp_config.unicast_destination_port} "
+                    "instead"
+                )
+            print(
+                "Verified sonar is configured for unicast directed at --computer-ip and "
+                "--udp-port: OK"
+            )
+        elif udp_config.mode != args.udp_mode:
+            raise ValueError(
+                f"--verify found configuration issue: Sonar UDP mode is {udp_config.mode} and "
+                f"--udp-mode is {args.udp_mode}"
+            )
+        else:
+            raise ValueError(
+                f"--verify found configuration issue: Sonar UDP mode is {udp_config.mode}, "
+                "expected multicast, or unicast directed at --computer-ip and --udp-port"
+            )
+
         # verify acoustics enabled
         if not sonar.get_acoustics_enabled():
             raise RuntimeError("Sonar has acoustics disabled. Hint: use --cfg")
         print("Verified acoustics enabled: OK")
+
         # verify imu output enabled
         if not sonar.get_output_imu_batch_enabled():
             raise RuntimeError("Sonar has imu output disabled. Hint: use --cfg")
@@ -119,11 +188,19 @@ if __name__ == "__main__":
 
     # setup sock, with specific iface IP if given
     kwargs = {}
-    if args.iface_ip is not None:
-        kwargs["iface_ip"] = args.iface_ip
-    if args.udp_port is not None:
-        kwargs["udp_port"] = args.udp_port
-    sock = open_sonar_udp_multicast_socket(**kwargs)
+    if args.computer_ip is not None:
+        kwargs["iface_ip"] = args.computer_ip
+    kwargs["udp_port"] = args.udp_port
+
+    if args.udp_mode == "unicast":
+        sock = open_sonar_udp_unicast_socket(**kwargs)
+    elif (
+        args.udp_mode == "multicast"
+        or args.udp_mode is None  # default to multicast if not specified
+    ):
+        sock = open_sonar_udp_multicast_socket(**kwargs)
+    else:
+        raise ValueError(f"Invalid --udp-mode: {args.udp_mode}")
     sock.settimeout(1.0)
     try:
         # receive packets and write to open file
