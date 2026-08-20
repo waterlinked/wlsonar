@@ -30,6 +30,8 @@ jobs:
         run: uv sync --locked --dev
       - name: Run ruff
         run: uv run ruff check
+      - name: Run ruff format
+        run: uv run ruff format --diff
       - name: Run mypy
         run: uv run mypy . --exclude examples
       - name: Test
