@@ -5,6 +5,41 @@ on:
   workflow_call: {}
 
 jobs:
+  CheckGeneratedProtobuf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.15"
+          python-version: "3.10"
+      - name: Install protoc 33.2
+        run: |
+          curl --fail --location \
+            --output "$RUNNER_TEMP/protoc.zip" \
+            https://github.com/protocolbuffers/protobuf/releases/download/v33.2/protoc-33.2-linux-x86_64.zip
+          unzip "$RUNNER_TEMP/protoc.zip" -d "$RUNNER_TEMP/protoc"
+          echo "$RUNNER_TEMP/protoc/bin" >> "$GITHUB_PATH"
+      - name: Install dependencies
+        run: uv sync --locked --dev
+      - name: Generate protobuf bindings
+        run: |
+          uv run protoc \
+              --proto_path=src/wlsonar/range_image_protocol/_proto/ \
+              --python_out=src/wlsonar/range_image_protocol/_proto/ \
+              --mypy_out=src/wlsonar/range_image_protocol/_proto/  \
+              src/wlsonar/range_image_protocol/_proto/WaterLinkedSonarIntegrationProtocol.proto
+      - name: Check generated protobuf bindings are up to date
+        run: |
+          echo "Checking that protobuf generation did not cause a diff."
+          echo "If this fails, regenerate the bindings before committing."
+          git diff --exit-code -- src/wlsonar/range_image_protocol/_proto/
+
   Check:
     runs-on: ${{ matrix.os }}
     strategy:
