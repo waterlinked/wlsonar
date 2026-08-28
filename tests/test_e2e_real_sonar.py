@@ -1,4 +1,5 @@
 from datetime import datetime
+from importlib.metadata import version
 from typing import Literal, cast
 
 import pytest
@@ -32,6 +33,8 @@ def test_e2e_Sonar3D_client_against_real_sonar(request: pytest.FixtureRequest) -
     Example use:
         uv run pytest -s -m e2e --sonar-ip 10.1.2.156
     """
+    print(f"wlsonar version: {version('wlsonar')}")
+
     sonar_ip = request.config.getoption("--sonar-ip")
     assert sonar_ip is not None and isinstance(sonar_ip, str), (
         "This test requires --sonar-ip to be set."
