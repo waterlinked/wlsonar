@@ -40,7 +40,19 @@ Versioning is handled with `uv`. Setting a new version with `uv version <new ver
 
 ## Protobuf
 
-The Sonar 3D-15 uses a .proto file to define message formats. This package includes generated Python for these messages. When changing the .proto file, run the following to generate new Python code:
+The Sonar 3D-15 uses a .proto file to define message formats. wlsonar includes generated Python for these messages using protoc.
+
+The version of protoc used to generate code should match the Python protobuf package requirement in pyproject.toml.
+At the time of writing the Python protobuf dependency is `>=6.33.2,<7`, meaning the protoc compiler should be 33.2.
+
+Install 33.2 here: https://github.com/protocolbuffers/protobuf/releases/tag/v33.2
+
+There is a pipeline check to assert that the generated code matches the expected protoc version.
+
+> [!IMPORTANT]
+> If the Python library in pyproject.toml is updated, this section should be updated also.
+
+When changing the .proto file, run the following to generate new Python code:
 
 ```bash
 uv run protoc \
